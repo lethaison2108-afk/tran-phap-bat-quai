@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trận Pháp Bát Quái 3D</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #050508;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="baguaCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('baguaCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height, cx, cy, scale;
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      cx = width / 2;
+      cy = height / 2;
+      scale = Math.min(width, height) / 850;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Dữ liệu ký tự cổ phong thủy / bát quái
+    const baguaTrigrams = ['☰', '☱', '☲', '☳', '☴', '☵', '☶', '☷'];
+    const heavenlyStems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+    const earthlyBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+    const directions = ['乾', '坎', '艮', '震', '巽', '離', '坤', '兌'];
+    
+    // Tạo danh sách 64 quẻ Dịch (Unicode U+4DC0 đến U+4DFF)
+    const hexagrams64 = Array.from({ length: 64 }, (_, i) => String.fromCharCode(0x4DC0 + i));
+
+    // Các hạt bụi ánh sáng bay lơ lửng
+    const particles = Array.from({ length: 70 }, () => ({
+      angle: Math.random() * Math.PI * 2,
+      radius: Math.random() * 400 + 40,
+      speed: (Math.random() - 0.5) * 0.008,
+      size: Math.random() * 2 + 0.5,
+      alpha: Math.random() * 0.7 + 0.2
+    }));
+
+    // Vẽ biểu tượng Thái Cực (Âm Dương) ở tâm
+    function drawYinYang(radius, angle) {
+      ctx.save();
+      ctx.rotate(angle);
+
+      // Vòng tròn trắng
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Nửa đen
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, -Math.PI / 2, Math.PI / 2);
+      ctx.fillStyle = '#08080c';
+      ctx.fill();
+
+      // Đầu tròn trắng
+      ctx.beginPath();
+      ctx.arc(0, -radius / 2, radius / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Đầu tròn đen
+      ctx.beginPath();
+      ctx.arc(0, radius / 2, radius / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#08080c';
+      ctx.fill();
+
+      // Chấm nhỏ đen trong phần trắng
+      ctx.beginPath();
+      ctx.arc(0, -radius / 2, radius / 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#08080c';
+      ctx.fill();
+
+      // Chấm nhỏ trắng trong phần đen
+      ctx.beginPath();
+      ctx.arc(0, radius / 2, radius / 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // Viền phát sáng ngoài Thái Cực
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Vẽ một vòng tròn chữ / ký tự xoay quanh tâm
+    function drawTextRing(items, radius, fontSize, angle, showDividers = true) {
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.font = `${fontSize}px "Microsoft YaHei", "SimSun", serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(235, 245, 255, 0.92)';
+
+      const step = (Math.PI * 2) / items.length;
+
+      for (let i = 0; i < items.length; i++) {
+        const theta = i * step;
+        ctx.save();
+        ctx.rotate(theta);
+        ctx.translate(0, -radius);
+        ctx.fillText(items[i], 0, 0);
+        ctx.restore();
+
+        // Vẽ vạch chia ô giữa các ký tự
+        if (showDividers) {
+          const divAngle = theta + step / 2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(divAngle) * (radius - fontSize * 0.7), Math.sin(divAngle) * (radius - fontSize * 0.7));
+          ctx.lineTo(Math.cos(divAngle) * (radius + fontSize * 0.7), Math.sin(divAngle) * (radius + fontSize * 0.7));
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // Vẽ đường viền tròn đồng tâm
+    function drawCircleBorder(radius, lineWidth = 1, alpha = 0.5, dash = []) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash(dash);
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(220, 240, 255, ${alpha})`;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Vẽ vạch chia độ tinh xảo như la bàn
+    function drawTicks(innerR, outerR, count, angle, alpha = 0.4) {
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.strokeStyle = `rgba(220, 240, 255, ${alpha})`;
+      ctx.lineWidth = 1;
+      const step = (Math.PI * 2) / count;
+      for (let i = 0; i < count; i++) {
+        const a = i * step;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * innerR, Math.sin(a) * innerR);
+        ctx.lineTo(Math.cos(a) * outerR, Math.sin(a) * outerR);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    let time = 0;
+
+    function animate() {
+      // Tạo hiệu ứng vệt mờ nhẹ khi chuyển động
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.85)';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      // Hiệu ứng phát sáng (Glow) trắng xanh huyền ảo
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(180, 225, 255, 0.85)';
+
+      // 1. Tâm Thái Cực
+      drawYinYang(32, time * 0.8);
+      drawCircleBorder(40, 1.5, 0.8);
+
+      // 2. Vòng Tiên Thiên Bát Quái
+      drawTextRing(baguaTrigrams, 62, 22, -time * 0.5, true);
+      drawCircleBorder(82, 1.2, 0.6);
+
+      // 3. Vòng Bát Phương
+      drawTextRing(directions, 102, 16, time * 0.4, true);
+      drawCircleBorder(120, 1, 0.5);
+
+      // 4. Vòng Thập Thiên Can (nhân đôi cho dày)
+      drawTextRing([...heavenlyStems, ...heavenlyStems], 142, 15, -time * 0.35, true);
+      drawCircleBorder(162, 1.5, 0.7);
+
+      // 5. Vòng vạch chia độ
+      drawTicks(166, 176, 72, time * 0.2, 0.5);
+      drawCircleBorder(180, 1, 0.4);
+
+      // 6. Vòng 24 Sơn Hướng (Thiên Can + Địa Chi)
+      const mountain24 = [...heavenlyStems.slice(0, 8), ...earthlyBranches, ...directions.slice(0, 4)];
+      drawTextRing(mountain24, 202, 15, time * 0.3, true);
+      drawCircleBorder(222, 1.5, 0.75);
+
+      // 7. Vòng 64 Quẻ Dịch (đặc trưng nhất trong ảnh)
+      drawTextRing(hexagrams64, 252, 22, -time * 0.25, true);
+      drawCircleBorder(278, 2, 0.85);
+
+      // 8. Vòng vạch chia ngoài cùng & Thiên Can Địa Chi lặp lại
+      drawTicks(284, 296, 120, -time * 0.15, 0.45);
+      drawCircleBorder(300, 1, 0.5);
+
+      const outerChars = [...earthlyBranches, ...heavenlyStems, ...earthlyBranches, ...heavenlyStems];
+      drawTextRing(outerChars, 322, 14, time * 0.18, true);
+      drawCircleBorder(342, 1.5, 0.7);
+      drawCircleBorder(352, 0.8, 0.35, [6, 6]);
+
+      // 9. Vẽ các hạt năng lượng bay quanh trận pháp
+      ctx.shadowBlur = 8;
+      particles.forEach(p => {
+        p.angle += p.speed;
+        const px = Math.cos(p.angle) * p.radius;
+        const py = Math.sin(p.angle) * p.radius;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(210, 240, 255, ${p.alpha})`;
+        ctx.fill();
+      });
+
+      ctx.restore();
+
+      time += 0.015;
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
