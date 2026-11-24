@@ -343,65 +343,67 @@
 
     animate();
 
-    const NAMESPACE = 'tran-phap-bat-quai-lethaison';
+    // ========================================================
+    // HỆ THỐNG ĐỒNG BỘ LƯỢT TRUY CẬP & SỐ SAO THỜI GIAN THỰC
+    // ========================================================
+    const NAMESPACE = 'lethaison-batquai-v3';
+    const API_BASE = 'https://abacus.jasoncameron.dev';
     const visitEl = document.getElementById('visitCount');
     const starEl = document.getElementById('starCount');
     const starBtn = document.getElementById('starBtn');
 
-    let hasStarred = localStorage.getItem('bagua_has_starred') === 'true';
+    let hasStarred = localStorage.getItem('bagua_v3_starred') === 'true';
     if (hasStarred) {
       starBtn.classList.add('starred');
     }
 
-    async function updateCounter(key, isIncrement = false) {
-      const storageKey = `bagua_${key}`;
-      const endpoint = isIncrement
-        ? `https://api.counterapi.dev/v1/${NAMESPACE}/${key}/up`
-        : `https://api.counterapi.dev/v1/${NAMESPACE}/${key}`;
-
+    async function syncCount(key, action = 'get') {
       try {
-        const res = await fetch(endpoint);
+        const url = `${API_BASE}/${action}/${NAMESPACE}/${key}?t=${Date.now()}`;
+        const res = await fetch(url, { cache: 'no-store' });
         const data = await res.json();
-        const count = data.count || (isIncrement ? 1 : 0);
-        localStorage.setItem(storageKey, count);
-        return count;
-      } catch (e) {
-        let localCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
-        if (isIncrement) {
-          localCount += 1;
-          localStorage.setItem(storageKey, localCount);
-        }
-        return localCount;
+        return typeof data.value === 'number' ? data.value : 0;
+      } catch (err) {
+        return null;
       }
     }
 
-    async function loadStats() {
-      const [visits, stars] = await Promise.all([
-        updateCounter('visits', true),
-        updateCounter('stars', false)
-      ]);
-      visitEl.innerText = visits.toLocaleString('vi-VN');
-      starEl.innerText = stars.toLocaleString('vi-VN');
+    function renderStats(visits, stars) {
+      if (visits !== null) visitEl.innerText = visits.toLocaleString('vi-VN');
+      if (stars !== null) starEl.innerText = stars.toLocaleString('vi-VN');
     }
+
+    async function initStats() {
+      const [visits, stars] = await Promise.all([
+        syncCount('visits', 'hit'),
+        syncCount('stars', 'get')
+      ]);
+      renderStats(visits, stars);
+    }
+
+    setInterval(async () => {
+      const [latestVisits, latestStars] = await Promise.all([
+        syncCount('visits', 'get'),
+        syncCount('stars', 'get')
+      ]);
+      renderStats(latestVisits, latestStars);
+    }, 5000);
 
     async function handleStar() {
       spawnFloatingStar();
       if (hasStarred) return;
 
       hasStarred = true;
-      localStorage.setItem('bagua_has_starred', 'true');
+      localStorage.setItem('bagua_v3_starred', 'true');
       starBtn.classList.add('starred');
 
-      const currentNum = parseInt(starEl.innerText.replace(/\./g, '').replace(/,/g, ''), 10) || 0;
-      starEl.innerText = (currentNum + 1).toLocaleString('vi-VN');
-
-      const updatedStars = await updateCounter('stars', true);
-      if (updatedStars > 0) {
-        starEl.innerText = updatedStars.toLocaleString('vi-VN');
+      const newStarCount = await syncCount('stars', 'hit');
+      if (newStarCount !== null) {
+        starEl.innerText = newStarCount.toLocaleString('vi-VN');
       }
     }
 
-    loadStats();
+    initStats();
   </script>
 </body>
 </html>
