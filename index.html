@@ -3,270 +3,348 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Máy Tính Cầm Tay</title>
+  <title>Trận Pháp Bát Quái 3D</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-
     body {
-      background-color: #121218;
+      background-color: #050508;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    canvas {
+      display: block;
     }
 
-    .calculator {
-      background-color: #1e1e26;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-      width: 320px;
-    }
-
-    .display {
-      background-color: #14141a;
-      color: #ffffff;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 20px;
-      text-align: right;
-      min-height: 90px;
+    /* Thanh thống kê lượt truy cập & thả sao */
+    .hud-panel {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      word-wrap: break-word;
-      word-break: break-all;
+      align-items: center;
+      gap: 16px;
+      background: rgba(15, 22, 36, 0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(180, 225, 255, 0.25);
+      box-shadow: 0 0 20px rgba(100, 180, 255, 0.2);
+      padding: 10px 22px;
+      border-radius: 50px;
+      color: #e6f4ff;
+      z-index: 100;
+      user-select: none;
     }
 
-    .previous-operand {
-      color: #8e8e9e;
-      font-size: 16px;
-      min-height: 22px;
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      letter-spacing: 0.5px;
     }
 
-    .current-operand {
-      color: #ffffff;
-      font-size: 32px;
+    .stat-value {
+      font-weight: 700;
+      color: #7dd3fc;
+      text-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+    }
+
+    .divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(180, 225, 255, 0.25);
+    }
+
+    .star-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(250, 204, 21, 0.12);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+      color: #fde047;
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 14px;
       font-weight: 600;
-    }
-
-    .buttons {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
-    button {
-      height: 58px;
-      border: none;
-      border-radius: 14px;
-      font-size: 20px;
-      font-weight: 500;
       cursor: pointer;
-      background-color: #2a2a36;
-      color: #ffffff;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
     }
 
-    button:hover {
-      background-color: #363646;
+    .star-btn:hover {
+      background: rgba(250, 204, 21, 0.25);
+      box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+      transform: translateY(-1px);
     }
 
-    button:active {
-      transform: scale(0.95);
+    .star-btn:active {
+      transform: scale(0.92);
     }
 
-    .operator {
-      background-color: #323244;
-      color: #4cc9f0;
-      font-weight: 600;
+    .star-btn.starred {
+      background: rgba(250, 204, 21, 0.3);
+      border-color: #fde047;
+      box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
     }
 
-    .operator:hover {
-      background-color: #3f3f56;
+    .star-icon {
+      font-size: 16px;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .action {
-      background-color: #3a2a32;
-      color: #ff5c8a;
-    }
-
-    .action:hover {
-      background-color: #4d3540;
-    }
-
-    .equals {
-      background-color: #4361ee;
-      color: #ffffff;
-      grid-column: span 2;
-      font-weight: 600;
-    }
-
-    .equals:hover {
-      background-color: #3a56d4;
-    }
-
-    .zero {
-      grid-column: span 2;
+    .star-btn:hover .star-icon {
+      transform: rotate(72deg) scale(1.15);
     }
   </style>
 </head>
 <body>
+  <canvas id="baguaCanvas"></canvas>
 
-  <div class="calculator">
-    <div class="display">
-      <div class="previous-operand" id="previous"></div>
-      <div class="current-operand" id="current">0</div>
+  <!-- Giao diện số người truy cập & thả sao -->
+  <div class="hud-panel">
+    <div class="stat-item" title="Tổng lượt truy cập trang">
+      <span>👁️ Đạo hữu ghé thăm:</span>
+      <span class="stat-value" id="visitCount">...</span>
     </div>
-    <div class="buttons">
-      <button class="action" onclick="clearAll()">AC</button>
-      <button class="action" onclick="deleteLast()">DEL</button>
-      <button class="operator" onclick="appendOperator('%')">%</button>
-      <button class="operator" onclick="appendOperator('÷')">÷</button>
-
-      <button onclick="appendNumber('7')">7</button>
-      <button onclick="appendNumber('8')">8</button>
-      <button onclick="appendNumber('9')">9</button>
-      <button class="operator" onclick="appendOperator('×')">×</button>
-
-      <button onclick="appendNumber('4')">4</button>
-      <button onclick="appendNumber('5')">5</button>
-      <button onclick="appendNumber('6')">6</button>
-      <button class="operator" onclick="appendOperator('-')">-</button>
-
-      <button onclick="appendNumber('1')">1</button>
-      <button onclick="appendNumber('2')">2</button>
-      <button onclick="appendNumber('3')">3</button>
-      <button class="operator" onclick="appendOperator('+')">+</button>
-
-      <button class="zero" onclick="appendNumber('0')">0</button>
-      <button onclick="appendNumber('.')">.</button>
-      <button class="equals" onclick="calculate()">=</button>
-    </div>
+    <div class="divider"></div>
+    <button class="star-btn" id="starBtn" onclick="handleStar()">
+      <span class="star-icon">⭐</span>
+      <span>Thả sao:</span>
+      <span id="starCount">...</span>
+    </button>
   </div>
 
   <script>
-    let currentInput = '0';
-    let previousInput = '';
-    let operation = null;
-    let shouldResetScreen = false;
+    const canvas = document.getElementById('baguaCanvas');
+    const ctx = canvas.getContext('2d');
 
-    const currentDisplay = document.getElementById('current');
-    const previousDisplay = document.getElementById('previous');
+    let width, height, cx, cy, scale;
 
-    function updateDisplay() {
-      currentDisplay.innerText = currentInput;
-      if (operation != null) {
-        previousDisplay.innerText = `${previousInput} ${operation}`;
-      } else {
-        previousDisplay.innerText = '';
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      cx = width / 2;
+      cy = height / 2;
+      scale = Math.min(width, height) / 850;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Dữ liệu ký tự cổ phong thủy / bát quái
+    const baguaTrigrams = ['☰', '☱', '☲', '☳', '☴', '☵', '☶', '☷'];
+    const heavenlyStems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+    const earthlyBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+    const directions = ['乾', '坎', '艮', '震', '巽', '離', '坤', '兌'];
+    const hexagrams64 = Array.from({ length: 64 }, (_, i) => String.fromCharCode(0x4DC0 + i));
+
+    // Các hạt bụi ánh sáng bay lơ lửng
+    const particles = Array.from({ length: 70 }, () => ({
+      angle: Math.random() * Math.PI * 2,
+      radius: Math.random() * 400 + 40,
+      speed: (Math.random() - 0.5) * 0.008,
+      size: Math.random() * 2 + 0.5,
+      alpha: Math.random() * 0.7 + 0.2
+    }));
+
+    // Hiệu ứng sao bay lên khi bấm nút thả sao
+    let shootingStars = [];
+
+    function spawnFloatingStar() {
+      for (let i = 0; i < 8; i++) {
+        shootingStars.push({
+          x: cx + (Math.random() - 0.5) * 140,
+          y: height - 60,
+          vx: (Math.random() - 0.5) * 3,
+          vy: -(Math.random() * 3 + 2),
+          size: Math.random() * 10 + 12,
+          alpha: 1
+        });
       }
     }
 
-    function appendNumber(number) {
-      if (currentInput === '0' || shouldResetScreen) {
-        currentInput = number === '.' ? '0.' : number;
-        shouldResetScreen = false;
-      } else {
-        if (number === '.' && currentInput.includes('.')) return;
-        currentInput += number;
-      }
-      updateDisplay();
+    function drawYinYang(radius, angle) {
+      ctx.save();
+      ctx.rotate(angle);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, -Math.PI / 2, Math.PI / 2);
+      ctx.fillStyle = '#08080c';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, -radius / 2, radius / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, radius / 2, radius / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#08080c';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, -radius / 2, radius / 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#08080c';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, radius / 2, radius / 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
     }
 
-    function appendOperator(op) {
-      if (op === '%') {
-        currentInput = (parseFloat(currentInput) / 100).toString();
-        updateDisplay();
-        return;
+    function drawTextRing(items, radius, fontSize, angle, showDividers = true) {
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.font = `${fontSize}px "Microsoft YaHei", "SimSun", serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(235, 245, 255, 0.92)';
+
+      const step = (Math.PI * 2) / items.length;
+
+      for (let i = 0; i < items.length; i++) {
+        const theta = i * step;
+        ctx.save();
+        ctx.rotate(theta);
+        ctx.translate(0, -radius);
+        ctx.fillText(items[i], 0, 0);
+        ctx.restore();
+
+        if (showDividers) {
+          const divAngle = theta + step / 2;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(divAngle) * (radius - fontSize * 0.7), Math.sin(divAngle) * (radius - fontSize * 0.7));
+          ctx.lineTo(Math.cos(divAngle) * (radius + fontSize * 0.7), Math.sin(divAngle) * (radius + fontSize * 0.7));
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
       }
-      if (operation !== null && !shouldResetScreen) {
-        calculate();
-      }
-      previousInput = currentInput;
-      operation = op;
-      shouldResetScreen = true;
-      updateDisplay();
+      ctx.restore();
     }
 
-    function calculate() {
-      if (operation === null || shouldResetScreen) return;
-      const prev = parseFloat(previousInput);
-      const current = parseFloat(currentInput);
-      if (isNaN(prev) || isNaN(current)) return;
-
-      let result;
-      switch (operation) {
-        case '+':
-          result = prev + current;
-          break;
-        case '-':
-          result = prev - current;
-          break;
-        case '×':
-          result = prev * current;
-          break;
-        case '÷':
-          if (current === 0) {
-            alert('Không thể chia cho 0!');
-            clearAll();
-            return;
-          }
-          result = prev / current;
-          break;
-        default:
-          return;
-      }
-
-      // Làm tròn để tránh lỗi số thực trong JavaScript (vd: 0.1 + 0.2)
-      currentInput = Math.round(result * 100000000) / 100000000 + '';
-      operation = null;
-      previousInput = '';
-      shouldResetScreen = true;
-      updateDisplay();
+    function drawCircleBorder(radius, lineWidth = 1, alpha = 0.5, dash = []) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash(dash);
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(220, 240, 255, ${alpha})`;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+      ctx.restore();
     }
 
-    function clearAll() {
-      currentInput = '0';
-      previousInput = '';
-      operation = null;
-      shouldResetScreen = false;
-      updateDisplay();
+    function drawTicks(innerR, outerR, count, angle, alpha = 0.4) {
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.strokeStyle = `rgba(220, 240, 255, ${alpha})`;
+      ctx.lineWidth = 1;
+      const step = (Math.PI * 2) / count;
+      for (let i = 0; i < count; i++) {
+        const a = i * step;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * innerR, Math.sin(a) * innerR);
+        ctx.lineTo(Math.cos(a) * outerR, Math.sin(a) * outerR);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
-    function deleteLast() {
-      if (shouldResetScreen) return;
-      if (currentInput.length === 1 || (currentInput.length === 2 && currentInput.startsWith('-'))) {
-        currentInput = '0';
-      } else {
-        currentInput = currentInput.slice(0, -1);
-      }
-      updateDisplay();
+    let time = 0;
+
+    function animate() {
+      ctx.fillStyle = 'rgba(5, 5, 8, 0.85)';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = 'rgba(180, 225, 255, 0.85)';
+
+      drawYinYang(32, time * 0.8);
+      drawCircleBorder(40, 1.5, 0.8);
+
+      drawTextRing(baguaTrigrams, 62, 22, -time * 0.5, true);
+      drawCircleBorder(82, 1.2, 0.6);
+
+      drawTextRing(directions, 102, 16, time * 0.4, true);
+      drawCircleBorder(120, 1, 0.5);
+
+      drawTextRing([...heavenlyStems, ...heavenlyStems], 142, 15, -time * 0.35, true);
+      drawCircleBorder(162, 1.5, 0.7);
+
+      drawTicks(166, 176, 72, time * 0.2, 0.5);
+      drawCircleBorder(180, 1, 0.4);
+
+      const mountain24 = [...heavenlyStems.slice(0, 8), ...earthlyBranches, ...directions.slice(0, 4)];
+      drawTextRing(mountain24, 202, 15, time * 0.3, true);
+      drawCircleBorder(222, 1.5, 0.75);
+
+      drawTextRing(hexagrams64, 252, 22, -time * 0.25, true);
+      drawCircleBorder(278, 2, 0.85);
+
+      drawTicks(284, 296, 120, -time * 0.15, 0.45);
+      drawCircleBorder(300, 1, 0.5);
+
+      const outerChars = [...earthlyBranches, ...heavenlyStems, ...earthlyBranches, ...heavenlyStems];
+      drawTextRing(outerChars, 322, 14, time * 0.18, true);
+      drawCircleBorder(342, 1.5, 0.7);
+      drawCircleBorder(352, 0.8, 0.35, [6, 6]);
+
+      ctx.shadowBlur = 8;
+      particles.forEach(p => {
+        p.angle += p.speed;
+        const px = Math.cos(p.angle) * p.radius;
+        const py = Math.sin(p.angle) * p.radius;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(210, 240, 255, ${p.alpha})`;
+        ctx.fill();
+      });
+
+      ctx.restore();
+
+      // Vẽ hiệu ứng ngôi sao bay lên khi người dùng bấm thả sao
+      shootingStars.forEach((s, idx) => {
+        s.x += s.vx;
+        s.y += s.vy;
+        s.alpha -= 0.018;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, s.alpha);
+        ctx.font = `${s.size}px Arial`;
+        ctx.fillText('⭐', s.x, s.y);
+        ctx.restore();
+        if (s.alpha <= 0) shootingStars.splice(idx, 1);
+      });
+
+      time += 0.015;
+      requestAnimationFrame(animate);
     }
 
-    // Hỗ trợ nhập từ bàn phím máy tính
-    window.addEventListener('keydown', (e) => {
-      if (e.key >= 0 && e.key <= 9) appendNumber(e.key);
-      if (e.key === '.') appendNumber('.');
-      if (e.key === '=' || e.key === 'Enter') {
-        e.preventDefault();
-        calculate();
-      }
-      if (e.key === 'Backspace') deleteLast();
-      if (e.key === 'Escape') clearAll();
-      if (e.key === '+' || e.key === '-') appendOperator(e.key);
-      if (e.key === '*') appendOperator('×');
-      if (e.key === '/') {
-        e.preventDefault();
-        appendOperator('÷');
-      }
-      if (e.key === '%') appendOperator('%');
-    });
-  </script>
-</body>
-</html>
+    animate();
+
+    // ==========================================
+    // HỆ THỐNG ĐẾM LƯỢT TRUY CẬP & THẢ SAO ONLINE
