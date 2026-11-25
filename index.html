@@ -17,110 +17,14 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     canvas {
       display: block;
-    }
-
-    /* Thanh thống kê lượt truy cập & thả sao */
-    .hud-panel {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: rgba(15, 22, 36, 0.65);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(180, 225, 255, 0.25);
-      box-shadow: 0 0 20px rgba(100, 180, 255, 0.2);
-      padding: 10px 22px;
-      border-radius: 50px;
-      color: #e6f4ff;
-      z-index: 100;
-      user-select: none;
-    }
-
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      letter-spacing: 0.5px;
-    }
-
-    .stat-value {
-      font-weight: 700;
-      color: #7dd3fc;
-      text-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
-    }
-
-    .divider {
-      width: 1px;
-      height: 18px;
-      background: rgba(180, 225, 255, 0.25);
-    }
-
-    .star-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(250, 204, 21, 0.12);
-      border: 1px solid rgba(250, 204, 21, 0.4);
-      color: #fde047;
-      padding: 6px 14px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .star-btn:hover {
-      background: rgba(250, 204, 21, 0.25);
-      box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
-      transform: translateY(-1px);
-    }
-
-    .star-btn:active {
-      transform: scale(0.92);
-    }
-
-    .star-btn.starred {
-      background: rgba(250, 204, 21, 0.3);
-      border-color: #fde047;
-      box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
-    }
-
-    .star-icon {
-      font-size: 16px;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .star-btn:hover .star-icon {
-      transform: rotate(72deg) scale(1.15);
     }
   </style>
 </head>
 <body>
   <canvas id="baguaCanvas"></canvas>
-
-  <!-- Giao diện số người truy cập & thả sao -->
-  <div class="hud-panel">
-    <div class="stat-item" title="Tổng lượt truy cập trang">
-      <span>👁️ Đạo hữu ghé thăm:</span>
-      <span class="stat-value" id="visitCount">...</span>
-    </div>
-    <div class="divider"></div>
-    <button class="star-btn" id="starBtn" onclick="handleStar()">
-      <span class="star-icon">⭐</span>
-      <span>Thả sao:</span>
-      <span id="starCount">...</span>
-    </button>
-  </div>
 
   <script>
     const canvas = document.getElementById('baguaCanvas');
@@ -143,6 +47,8 @@
     const heavenlyStems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
     const earthlyBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
     const directions = ['乾', '坎', '艮', '震', '巽', '離', '坤', '兌'];
+    
+    // Tạo danh sách 64 quẻ Dịch (Unicode U+4DC0 đến U+4DFF)
     const hexagrams64 = Array.from({ length: 64 }, (_, i) => String.fromCharCode(0x4DC0 + i));
 
     // Các hạt bụi ánh sáng bay lơ lửng
@@ -154,56 +60,48 @@
       alpha: Math.random() * 0.7 + 0.2
     }));
 
-    // Hiệu ứng sao bay lên khi bấm nút thả sao
-    let shootingStars = [];
-
-    function spawnFloatingStar() {
-      for (let i = 0; i < 8; i++) {
-        shootingStars.push({
-          x: cx + (Math.random() - 0.5) * 140,
-          y: height - 60,
-          vx: (Math.random() - 0.5) * 3,
-          vy: -(Math.random() * 3 + 2),
-          size: Math.random() * 10 + 12,
-          alpha: 1
-        });
-      }
-    }
-
+    // Vẽ biểu tượng Thái Cực (Âm Dương) ở tâm
     function drawYinYang(radius, angle) {
       ctx.save();
       ctx.rotate(angle);
 
+      // Vòng tròn trắng
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
 
+      // Nửa đen
       ctx.beginPath();
       ctx.arc(0, 0, radius, -Math.PI / 2, Math.PI / 2);
       ctx.fillStyle = '#08080c';
       ctx.fill();
 
+      // Đầu tròn trắng
       ctx.beginPath();
       ctx.arc(0, -radius / 2, radius / 2, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
 
+      // Đầu tròn đen
       ctx.beginPath();
       ctx.arc(0, radius / 2, radius / 2, 0, Math.PI * 2);
       ctx.fillStyle = '#08080c';
       ctx.fill();
 
+      // Chấm nhỏ đen trong phần trắng
       ctx.beginPath();
       ctx.arc(0, -radius / 2, radius / 6, 0, Math.PI * 2);
       ctx.fillStyle = '#08080c';
       ctx.fill();
 
+      // Chấm nhỏ trắng trong phần đen
       ctx.beginPath();
       ctx.arc(0, radius / 2, radius / 6, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
 
+      // Viền phát sáng ngoài Thái Cực
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
@@ -213,6 +111,7 @@
       ctx.restore();
     }
 
+    // Vẽ một vòng tròn chữ / ký tự xoay quanh tâm
     function drawTextRing(items, radius, fontSize, angle, showDividers = true) {
       ctx.save();
       ctx.rotate(angle);
@@ -231,6 +130,7 @@
         ctx.fillText(items[i], 0, 0);
         ctx.restore();
 
+        // Vẽ vạch chia ô giữa các ký tự
         if (showDividers) {
           const divAngle = theta + step / 2;
           ctx.beginPath();
@@ -244,6 +144,7 @@
       ctx.restore();
     }
 
+    // Vẽ đường viền tròn đồng tâm
     function drawCircleBorder(radius, lineWidth = 1, alpha = 0.5, dash = []) {
       ctx.save();
       ctx.beginPath();
@@ -255,6 +156,7 @@
       ctx.restore();
     }
 
+    // Vẽ vạch chia độ tinh xảo như la bàn
     function drawTicks(innerR, outerR, count, angle, alpha = 0.4) {
       ctx.save();
       ctx.rotate(angle);
@@ -274,6 +176,7 @@
     let time = 0;
 
     function animate() {
+      // Tạo hiệu ứng vệt mờ nhẹ khi chuyển động
       ctx.fillStyle = 'rgba(5, 5, 8, 0.85)';
       ctx.fillRect(0, 0, width, height);
 
@@ -281,31 +184,40 @@
       ctx.translate(cx, cy);
       ctx.scale(scale, scale);
 
+      // Hiệu ứng phát sáng (Glow) trắng xanh huyền ảo
       ctx.shadowBlur = 14;
       ctx.shadowColor = 'rgba(180, 225, 255, 0.85)';
 
+      // 1. Tâm Thái Cực
       drawYinYang(32, time * 0.8);
       drawCircleBorder(40, 1.5, 0.8);
 
+      // 2. Vòng Tiên Thiên Bát Quái
       drawTextRing(baguaTrigrams, 62, 22, -time * 0.5, true);
       drawCircleBorder(82, 1.2, 0.6);
 
+      // 3. Vòng Bát Phương
       drawTextRing(directions, 102, 16, time * 0.4, true);
       drawCircleBorder(120, 1, 0.5);
 
+      // 4. Vòng Thập Thiên Can (nhân đôi cho dày)
       drawTextRing([...heavenlyStems, ...heavenlyStems], 142, 15, -time * 0.35, true);
       drawCircleBorder(162, 1.5, 0.7);
 
+      // 5. Vòng vạch chia độ
       drawTicks(166, 176, 72, time * 0.2, 0.5);
       drawCircleBorder(180, 1, 0.4);
 
+      // 6. Vòng 24 Sơn Hướng (Thiên Can + Địa Chi)
       const mountain24 = [...heavenlyStems.slice(0, 8), ...earthlyBranches, ...directions.slice(0, 4)];
       drawTextRing(mountain24, 202, 15, time * 0.3, true);
       drawCircleBorder(222, 1.5, 0.75);
 
+      // 7. Vòng 64 Quẻ Dịch (đặc trưng nhất trong ảnh)
       drawTextRing(hexagrams64, 252, 22, -time * 0.25, true);
       drawCircleBorder(278, 2, 0.85);
 
+      // 8. Vòng vạch chia ngoài cùng & Thiên Can Địa Chi lặp lại
       drawTicks(284, 296, 120, -time * 0.15, 0.45);
       drawCircleBorder(300, 1, 0.5);
 
@@ -314,6 +226,7 @@
       drawCircleBorder(342, 1.5, 0.7);
       drawCircleBorder(352, 0.8, 0.35, [6, 6]);
 
+      // 9. Vẽ các hạt năng lượng bay quanh trận pháp
       ctx.shadowBlur = 8;
       particles.forEach(p => {
         p.angle += p.speed;
@@ -327,24 +240,11 @@
 
       ctx.restore();
 
-      // Vẽ hiệu ứng ngôi sao bay lên khi người dùng bấm thả sao
-      shootingStars.forEach((s, idx) => {
-        s.x += s.vx;
-        s.y += s.vy;
-        s.alpha -= 0.018;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, s.alpha);
-        ctx.font = `${s.size}px Arial`;
-        ctx.fillText('⭐', s.x, s.y);
-        ctx.restore();
-        if (s.alpha <= 0) shootingStars.splice(idx, 1);
-      });
-
       time += 0.015;
       requestAnimationFrame(animate);
     }
 
     animate();
-
-    // ==========================================
-    // HỆ THỐNG ĐẾM LƯỢT TRUY CẬP & THẢ SAO ONLINE
+  </script>
+</body>
+</html>
